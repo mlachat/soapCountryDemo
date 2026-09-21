@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+                  xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+                  xmlns:xs="http://www.w3.org/2001/XMLSchema"
+                  xmlns:tns="https://example.de/soap/countries"
+                  targetNamespace="https://example.de/soap/countries" name="CountriesService">
+    <wsdl:types>
+        <xs:schema>
+            <xs:import namespace="https://example.de/soap/countries" schemaLocation="country-types.xsd"/>
+        </xs:schema>
+    </wsdl:types>
+    <wsdl:message name="GetCountryRequest">
+        <wsdl:part name="parameters" element="tns:getCountryRequest"/>
+    </wsdl:message>
+    <wsdl:message name="GetCountryResponse">
+        <wsdl:part name="parameters" element="tns:getCountryResponse"/>
+    </wsdl:message>
+    <wsdl:portType name="CountriesPort">
+        <wsdl:operation name="getCountry">
+            <wsdl:input message="tns:GetCountryRequest"/>
+            <wsdl:output message="tns:GetCountryResponse"/>
+        </wsdl:operation>
+    </wsdl:portType>
+    <wsdl:binding name="CountriesSoap11Binding" type="tns:CountriesPort">
+        <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+        <wsdl:operation name="getCountry">
+            <soap:operation soapAction="https://example.de/soap/countries/getCountry"/>
+            <wsdl:input><soap:body use="literal"/></wsdl:input>
+            <wsdl:output><soap:body use="literal"/></wsdl:output>
+        </wsdl:operation>
+    </wsdl:binding>
+    <wsdl:service name="CountriesService">
+        <wsdl:port name="CountriesSoap11Port" binding="tns:CountriesSoap11Binding">
+            <soap:address location="http://localhost:8080/ws"/>
+        </wsdl:port>
+    </wsdl:service>
+</wsdl:definitions>
