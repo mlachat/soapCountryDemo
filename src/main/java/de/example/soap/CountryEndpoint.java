@@ -5,22 +5,22 @@ import java.util.Map;
 import de.example.soap.contract.Country;
 import de.example.soap.contract.GetCountryRequest;
 import de.example.soap.contract.GetCountryResponse;
-import org.springframework.ws.server.endpoint.annotation.Endpoint;
-import org.springframework.ws.server.endpoint.annotation.PayloadRoot;
-import org.springframework.ws.server.endpoint.annotation.RequestPayload;
-import org.springframework.ws.server.endpoint.annotation.ResponsePayload;
+import de.example.soap.contract.CountriesPort;
+import jakarta.jws.WebService;
 
-@Endpoint
-public class CountryEndpoint {
+@WebService(endpointInterface = "de.example.soap.contract.CountriesPort",
+        targetNamespace = CountryEndpoint.NAMESPACE,
+        serviceName = "CountriesService", portName = "CountriesSoap11Port",
+        wsdlLocation = "META-INF/schemas/countries.wsdl")
+public class CountryEndpoint implements CountriesPort {
     public static final String NAMESPACE = "https://example.de/soap/countries";
     private static final Map<String, CountryData> COUNTRIES = Map.of(
             "DE", new CountryData("Deutschland", "Berlin", "EUR"),
             "AT", new CountryData("Österreich", "Wien", "EUR"),
             "CH", new CountryData("Schweiz", "Bern", "CHF"));
 
-    @PayloadRoot(namespace = NAMESPACE, localPart = "getCountryRequest")
-    @ResponsePayload
-    public GetCountryResponse getCountry(@RequestPayload GetCountryRequest request) {
+    @Override
+    public GetCountryResponse getCountry(GetCountryRequest request) {
         var data = COUNTRIES.get(request.getCode());
         if (data == null) {
             throw new CountryNotFoundException(request.getCode());

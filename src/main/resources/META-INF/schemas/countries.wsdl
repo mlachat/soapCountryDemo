@@ -31,7 +31,7 @@
     </wsdl:binding>
     <wsdl:service name="CountriesService">
         <wsdl:port name="CountriesSoap11Port" binding="tns:CountriesSoap11Binding">
-            <soap:address location="http://localhost:8080/ws"/>
+            <soap:address location="http://localhost:8080/ws/countries"/>
         </wsdl:port>
     </wsdl:service>
 </wsdl:definitions>

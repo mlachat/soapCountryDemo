@@ -1,27 +1,25 @@
 package de.example.soap;
 
-import java.util.List;
+import java.util.Map;
 
+import jakarta.xml.ws.Endpoint;
+import org.apache.cxf.Bus;
+import org.apache.cxf.jaxws.EndpointImpl;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.ws.config.annotation.WsConfigurer;
-import org.springframework.ws.server.EndpointInterceptor;
-import org.springframework.ws.soap.server.endpoint.interceptor.PayloadValidatingInterceptor;
 
-@Configuration
-public class WebServiceConfiguration implements WsConfigurer {
-    @Override
-    public void addInterceptors(List<EndpointInterceptor> interceptors) {
-        interceptors.add(payloadValidator());
+@Configuration(proxyBeanMethods = false)
+public class WebServiceConfiguration {
+    @Bean
+    public CountryEndpoint countryEndpoint() {
+        return new CountryEndpoint();
     }
 
-    @Bean
-    public PayloadValidatingInterceptor payloadValidator() {
-        var validator = new PayloadValidatingInterceptor();
-        validator.setSchema(new ClassPathResource("META-INF/schemas/country-types.xsd"));
-        validator.setValidateRequest(true);
-        validator.setValidateResponse(true);
-        return validator;
+    @Bean(destroyMethod = "stop")
+    public Endpoint countriesService(Bus bus, CountryEndpoint countryEndpoint) {
+        var endpoint = new EndpointImpl(bus, countryEndpoint);
+        endpoint.setProperties(Map.of("schema-validation-enabled", "BOTH"));
+        endpoint.publish("/countries");
+        return endpoint;
     }
 }

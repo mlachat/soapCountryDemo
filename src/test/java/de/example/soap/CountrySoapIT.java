@@ -11,6 +11,7 @@ import java.util.Map;
 
 import javax.xml.XMLConstants;
 import javax.xml.namespace.NamespaceContext;
+import javax.xml.namespace.QName;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.validation.SchemaFactory;
@@ -18,6 +19,10 @@ import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathFactory;
 
+import de.example.soap.contract.CountriesPort;
+import de.example.soap.contract.GetCountryRequest;
+import jakarta.xml.ws.Service;
+import org.apache.cxf.frontend.ClientProxy;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -49,14 +54,34 @@ class CountrySoapIT {
     }
 
     @Test
+    void jakartaClientCallsServiceUsingPublishedWsdl() throws Exception {
+        var service = Service.create(URI.create(baseUrl() + "/ws/countries?wsdl").toURL(),
+                new QName(CountryEndpoint.NAMESPACE, "CountriesService"));
+        var proxy = service.getPort(new QName(CountryEndpoint.NAMESPACE, "CountriesSoap11Port"),
+                CountriesPort.class);
+        var cxfClient = ClientProxy.getClient(proxy);
+        cxfClient.getRequestContext().put("jakarta.xml.ws.client.connectionTimeout", "5000");
+        cxfClient.getRequestContext().put("jakarta.xml.ws.client.receiveTimeout", "10000");
+        try {
+            var request = new GetCountryRequest();
+            request.setCode("DE");
+            var country = proxy.getCountry(request).getCountry();
+            assertThat(country.getCode()).isEqualTo("DE");
+            assertThat(country.getCapital()).isEqualTo("Berlin");
+        } finally {
+            cxfClient.destroy();
+        }
+    }
+
+    @Test
     void publishesWsdlWithReachableSchemaAndActualServiceAddress() throws Exception {
-        var response = get("/ws/countries.wsdl");
+        var response = get("/ws/countries?wsdl");
         assertThat(response.statusCode()).isEqualTo(200);
         var wsdl = xml(response.body());
         assertThat(value(wsdl, "/w:definitions/@targetNamespace")).isEqualTo(CountryEndpoint.NAMESPACE);
         assertThat(value(wsdl, "/w:definitions/w:portType/w:operation/@name")).isEqualTo("getCountry");
-        assertThat(value(wsdl, "//s:address/@location")).isEqualTo(baseUrl() + "/ws");
-        var schemaUri = URI.create(baseUrl() + "/ws/countries.wsdl")
+        assertThat(value(wsdl, "//s:address/@location")).isEqualTo(baseUrl() + "/ws/countries");
+        var schemaUri = URI.create(baseUrl() + "/ws/countries?wsdl")
                 .resolve(value(wsdl, "//xs:import/@schemaLocation"));
         var schemaResponse = client.send(HttpRequest.newBuilder(schemaUri).timeout(Duration.ofSeconds(10))
                 .GET().build(), HttpResponse.BodyHandlers.ofString());
@@ -99,9 +124,7 @@ class CountrySoapIT {
     void invalidRequestReturnsValidationFault(String content) throws Exception {
         var document = assertClientFault(post(content));
         assertThat(value(document, "/soap:Envelope/soap:Body/soap:Fault/faultstring"))
-                .contains("Validation error");
-        assertThat(value(document, "count(/soap:Envelope/soap:Body/soap:Fault/detail/*)"))
-                .isNotEqualTo("0");
+                .contains("cvc-");
     }
 
     private Document assertClientFault(HttpResponse<String> response) throws Exception {
@@ -129,7 +152,7 @@ class CountrySoapIT {
                     <soap:Body><c:getCountryRequest>%s</c:getCountryRequest></soap:Body>
                 </soap:Envelope>
                 """.formatted(content);
-        return client.send(HttpRequest.newBuilder(URI.create(baseUrl() + "/ws"))
+        return client.send(HttpRequest.newBuilder(URI.create(baseUrl() + "/ws/countries"))
                 .timeout(Duration.ofSeconds(10))
                 .header("Content-Type", "text/xml; charset=UTF-8")
                 .header("SOAPAction", "\"https://example.de/soap/countries/getCountry\"")

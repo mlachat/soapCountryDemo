@@ -15,15 +15,22 @@
     <description>Contract-first SOAP demo with Spring Boot 4 and embedded Tomcat</description>
     <properties>
         <java.version>17</java.version>
+        <cxf.version>4.2.3</cxf.version>
     </properties>
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-webservices</artifactId>
+            <artifactId>spring-boot-starter-webmvc</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.glassfish.jaxb</groupId>
-            <artifactId>jaxb-runtime</artifactId>
+            <groupId>org.apache.cxf</groupId>
+            <artifactId>cxf-spring-boot-starter-jaxws</artifactId>
+            <version>${cxf.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.sun.xml.messaging.saaj</groupId>
+            <artifactId>saaj-impl</artifactId>
+            <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -38,19 +45,29 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
             <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>jaxb2-maven-plugin</artifactId>
-                <version>3.3.0</version>
+                <groupId>org.apache.cxf</groupId>
+                <artifactId>cxf-codegen-plugin</artifactId>
+                <version>${cxf.version}</version>
                 <executions>
                     <execution>
-                        <goals><goal>xjc</goal></goals>
+                        <id>generate-jakarta-contract</id>
+                        <phase>generate-sources</phase>
+                        <goals><goal>wsdl2java</goal></goals>
+                        <configuration>
+                            <wsdlOptions>
+                                <wsdlOption>
+                                    <wsdl>${project.basedir}/src/main/resources/META-INF/schemas/countries.wsdl</wsdl>
+                                    <wsdlLocation>classpath:META-INF/schemas/countries.wsdl</wsdlLocation>
+                                    <extraargs>
+                                        <extraarg>-p</extraarg>
+                                        <extraarg>de.example.soap.contract</extraarg>
+                                        <extraarg>-suppress-generated-date</extraarg>
+                                    </extraargs>
+                                </wsdlOption>
+                            </wsdlOptions>
+                        </configuration>
                     </execution>
                 </executions>
-                <configuration>
-                    <sources><source>src/main/resources/META-INF/schemas/country-types.xsd</source></sources>
-                    <packageName>de.example.soap.contract</packageName>
-                    <noGeneratedHeaderComments>true</noGeneratedHeaderComments>
-                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
